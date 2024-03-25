@@ -190,8 +190,7 @@ class TarantoolGrammar extends Grammar
      *
      * @return string
      */
-    /*
-    public function compileForeign(Blueprint $blueprint, Fluent $command)
+    public function compileForeign(Blueprint $blueprint, Fluent $command): string
     {
         $table = $this->wrapTable($blueprint);
         $on = $this->wrapTable($command->on);
@@ -200,22 +199,21 @@ class TarantoolGrammar extends Grammar
         // an array of columns to comma-delimited strings for the SQL queries.
         $columns = $this->columnize($command->columns);
         $onColumns = $this->columnize((array) $command->references);
-        $sql = "alter table {$table} add constraint ".strtoupper(substr($command->index, 0, 31))." ";
-        $sql .= "foreign key ({$columns}) references {$on} ({$onColumns})";
+        $sql = "alter table $table add constraint " . strtoupper(substr((string) $command->index, 0, 31)) . " ";
+        $sql .= "foreign key ($columns) references $on ($onColumns)";
         // Once we have the basic foreign key creation statement constructed we can
         // build out the syntax for what should happen on an update or delete of
         // the affected columns, which will get something like "cascade", etc.
-        if ( ! is_null($command->onDelete))
-        {
-            $sql .= " on delete {$command->onDelete}";
+        if (!is_null($command->onDelete)) {
+            $sql .= " on delete $command->onDelete";
         }
-        if ( ! is_null($command->onUpdate))
-        {
-            $sql .= " on update {$command->onUpdate}";
+
+        if (!is_null($command->onUpdate)) {
+            $sql .= " on update $command->onUpdate";
         }
+
         return $sql;
     }
-    */
 
     /**
      * Compile a drop foreign key command.

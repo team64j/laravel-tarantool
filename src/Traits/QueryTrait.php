@@ -24,7 +24,7 @@ trait QueryTrait
      */
     public function select($query, $bindings = [], $useReadPdo = false): array
     {
-        return $this->getDataWithKeys($this->executeQuery($query, $bindings, $useReadPdo));
+        return $this->getDataWithKeys($this->executeQuery($query, $bindings));
     }
 
     /**
@@ -75,15 +75,15 @@ trait QueryTrait
      */
     public function unprepared($query): bool
     {
-        $class = $this;
         $client = $this->getClient();
 
-        return $this->run($query, [], function ($query) use ($class, $client) {
+        return $this->run($query, [], function ($query) use ($client) {
             if ($this->pretending()) {
                 return true;
             }
+
             $this->recordsHaveBeenModified(
-                $change = $class->runQuery($client, $query, []) !== false
+                $change = $this->runQuery($client, $query, []) != false
             );
 
             return $change;
@@ -95,62 +95,57 @@ trait QueryTrait
      *
      * @param string $query
      * @param array $bindings
-     * @param bool $useReadPdo
      *
      * @return SqlUpdateResult|SqlQueryResult
      */
-    public function executeQuery(
-        string $query,
-        array $bindings,
-        bool $useReadPdo = false): SqlUpdateResult|SqlQueryResult
+    public function executeQuery(string $query, array $bindings): SqlUpdateResult|SqlQueryResult
     {
-        $class = $this;
         $client = $this->getClient();
-
         $client->execute('SET SESSION "sql_seq_scan" = true;');
 
-        return $this->run($query, $bindings, function ($query, $bindings) use ($class, $client) {
+        return $this->run($query, $bindings, function ($query, $bindings) use ($client) {
             if ($this->pretending()) {
                 return [];
             }
 
-            return $class->runQuery($client, $query, $bindings);
+            return $this->runQuery($client, $query, $bindings);
         });
     }
 
-    /**
-     * Run a SQL statement.
-     *
-     * @param string $query
-     * @param array $bindings
-     * @param Closure $callback
-     *
-     * @return SqlQueryResult|SqlUpdateResult
-     *
-     * @throws QueryException
-     */
-    protected function runQueryCallback($query, $bindings, Closure $callback): SqlUpdateResult|SqlQueryResult
-    {
-        // To execute the statement, we'll simply call the callback, which will actually
-        // run the SQL against the PDO connection. Then we can calculate the time it
-        // took to execute and log the query SQL, bindings and time in our memory.
-        try {
-            $result = $this->runQuery($this->getClient(), $query, $bindings);
-        }
-            // If an exception occurs when attempting to run a query, we'll format the error
-            // message to include the bindings with SQL, which will make this exception a
-            // lot more helpful to the developer instead of just the database's errors.
-        catch (Exception $e) {
-            throw new QueryException(
-                'tarantool',
-                $query,
-                $this->prepareBindings($bindings),
-                $e
-            );
-        }
-
-        return $result;
-    }
+//    /**
+//     * Run a SQL statement.
+//     *
+//     * @param string $query
+//     * @param array $bindings
+//     * @param Closure $callback
+//     *
+//     * @return SqlQueryResult|SqlUpdateResult
+//     *
+//     * @throws QueryException
+//     */
+//    protected function runQueryCallback($query, $bindings, Closure $callback): SqlUpdateResult|SqlQueryResult
+//    {
+//        dd($callback);
+//        // To execute the statement, we'll simply call the callback, which will actually
+//        // run the SQL against the PDO connection. Then we can calculate the time it
+//        // took to execute and log the query SQL, bindings and time in our memory.
+//        try {
+//            $result = $this->runQuery($this->getClient(), $query, $bindings);
+//        }
+//            // If an exception occurs when attempting to run a query, we'll format the error
+//            // message to include the bindings with SQL, which will make this exception a
+//            // lot more helpful to the developer instead of just the database's errors.
+//        catch (Exception $e) {
+//            throw new QueryException(
+//                'tarantool',
+//                $query,
+//                $this->prepareBindings($bindings),
+//                $e
+//            );
+//        }
+//
+//        return $result;
+//    }
 
     /**
      * Runs a SQL query.
@@ -182,16 +177,16 @@ trait QueryTrait
     }
 
     /**
-     * @param SqlQueryResult $result
+     * @param SqlUpdateResult|SqlQueryResult $result
      *
      * @return array
      */
-    private function getDataWithKeys(SqlQueryResult $result): array
+    private function getDataWithKeys(SqlUpdateResult|SqlQueryResult $result): array
     {
-        $data = iterator_to_array($result);
+        if ($result instanceof SqlUpdateResult) {
+            return ['info' => $result->count()];
+        }
 
-        return array_map(static function ($item) {
-            return array_change_key_case($item);
-        }, $data);
+        return iterator_to_array($result);
     }
 }

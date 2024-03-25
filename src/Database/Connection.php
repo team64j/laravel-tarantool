@@ -61,19 +61,6 @@ class Connection extends BaseConnection
     }
 
     /**
-     * Begin a fluent query against a database table.
-     *
-     * @param Closure|Database\Query\Builder|string $table
-     * @param string|null $as
-     *
-     * @return Database\Query\Builder
-     */
-    public function table($table, $as = null): Database\Query\Builder
-    {
-        return $this->query()->from($table);
-    }
-
-    /**
      * @param string $query
      * @param array $bindings
      * @param bool $useReadPdo
@@ -84,8 +71,7 @@ class Connection extends BaseConnection
     public function cursor($query, $bindings = [], $useReadPdo = true): Generator
     {
         /** @var SqlQueryResult $queryResult */
-        $queryResult = $this->run($query, $bindings, function () {
-        });
+        $queryResult = $this->run($query, $bindings, function () {});
 
         $metaData = $queryResult->getMetadata();
 
@@ -96,24 +82,6 @@ class Connection extends BaseConnection
         $result = new SqlQueryResult($queryResult->getData(), $metaData);
 
         return $result->getIterator();
-    }
-
-    /**
-     * Get a new query builder instance.
-     *
-     * @return Database\Query\Builder
-     */
-    public function query(): Database\Query\Builder
-    {
-        return new Builder($this, $this->getDefaultQueryGrammar(), $this->getDefaultPostProcessor());
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function getSchemaBuilder(): SchemaBuilder
-    {
-        return new SchemaBuilder($this);
     }
 
     /**
@@ -136,14 +104,6 @@ class Connection extends BaseConnection
     public function getClient(): Client
     {
         return $this->connection;
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function getDatabaseName()
-    {
-        return $this->config['database'];
     }
 
     /**
